@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Checklist Ocian</title>
+  <meta name="theme-color" content="#ffcd02">
+  
+  <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkNoZWNrbGlzdCBPY2lhbiIsCiAgInNob3J0X25hbWUiOiAiT2NpYW4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmZmNkMDIiLAogICJ0aGVtZV9jb2xvciI6ICIjZmZjZDAyIgp9">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #ffcd02;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+    .animate-fade-in-down { animation: fadeInDown 0.5s ease-out; }
+    @keyframes fadeInDown {
+      0% { opacity: 0; transform: translateY(-10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-bounce { animation: bounce 1s infinite; }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+      50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Ícones recriados para funcionar perfeitamente sem bibliotecas externas
+    const Icons = {
+      Play: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>,
+      Square: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>,
+      RotateCcw: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>,
+      Clock: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+      Check: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>,
+      MessageCircle: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>,
+      Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+      Calendar: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
+      ClipboardCheck: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><polyline points="9 14 11 16 15 12"></polyline></svg>,
+      FolderOpen: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path><path d="M2 10h20"></path></svg>,
+      ClipboardList: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="12" y1="11" x2="16" y2="11"></line><line x1="12" y1="16" x2="16" y2="16"></line><line x1="8" y1="11" x2="8.01" y2="11"></line><line x1="8" y1="16" x2="8.01" y2="16"></line></svg>,
+      Printer: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>,
+      PartyPopper: () => <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"></path><path d="M4 3h.01"></path><path d="M22 8h.01"></path><path d="M15 2h.01"></path><path d="M22 20h.01"></path><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"></path><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17"></path><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98v0C9.52 4.9 9 5.52 9 6.23V7"></path><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"></path></svg>
+    };
+
+    const BurgerLogo = ({ className }) => (
+      <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 20 45 C 20 15, 80 15, 80 45" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        <path d="M 15 57 L 35 57 L 45 65 L 55 57 L 85 57" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M 20 70 C 20 90, 80 90, 80 70" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        <path d="M 77 20 Q 85 20 85 12 Q 85 20 93 20 Q 85 20 85 28 Q 85 20 77 20 Z" fill="currentColor" />
+      </svg>
+    );
+
+    const checklistData = {
+      "Abertura da Loja": [
+        { id: "ab_1", text: "Todos os colaboradores guardaram os celulares no armário, estão uniformizados e bateram o ponto corretamente?" },
+        { id: "ab_2", text: "Temos dois gás cheios e apenas 1 está identificado e aberto?" },
+        { id: "ab_3", text: "Tirou o lixo?" },
+        { id: "ab_4", text: "A gaveta do caixa foi aberta?" },
+        { id: "ab_5", text: "O estoque está organizado para receber as mercadorias?" },
+        { id: "ab_6", text: "Galões de óleo estão vazios?" },
+        { id: "ab_7", text: "Tem galões de água disponíveis para o dia?" },
+        { id: "ab_8", text: "Os pertences dos colaboradores estão guardados no armário?" }
+      ],
+      "Atendimento": [
+        { id: "at_1", text: "O caixa foi aberto e as informações enviadas no GP do caixa?" },
+        { id: "at_2", text: "O gestor de pedidos do iFood, a planilha de consumo e o WhatsApp foram abertos?" },
+        { id: "at_3", text: "As máquinas de cartões foram ligadas, finalizadas e embaladas em dias de chuva?" },
+        { id: "at_4", text: "A mensagem de Saudação do Whatsapp foi ativada?" },
+        { id: "at_5", text: "Os clientes do Whatsapp foram salvos e os status postados?" },
+        { id: "at_6", text: "Boqueta aberta e pista quente ligada?" },
+        { id: "at_7", text: "Lixo da frente da loja está vazio?" },
+        { id: "at_8", text: "A frente da loja foi limpa no começo do dia?" },
+        { id: "at_9", text: "O controle de motoboys está datado e organizado na prancheta?" },
+        { id: "at_10", text: "A impressora está ligada e com duas bobinas de reserva?" }
+      ],
+      "Cozinha": [
+        { id: "cz_1", text: "Impressora ligada e com duas bobinas de reserva?" },
+        { id: "cz_2", text: "O toaster está ligado na temperatura 6?" },
+        { id: "cz_3", text: "Conservador de proteína ligado e com água nas gavetas?" },
+        { id: "cz_4", text: "Banho maria com água no nível e ligado a 50°C?" },
+        { id: "cz_5", text: "Pista aquecida da montagem ligada a 40°C?" },
+        { id: "cz_6", text: "Chapa ligada?" },
+        { id: "cz_7", text: "Conservador de frituras ligado?" },
+        { id: "cz_8", text: "Óleo da fritadeira filtrado ou trocado?" },
+        { id: "cz_9", text: "Fritadeira ligada à 180°C?" },
+        { id: "cz_10", text: "O balde de troca de óleo está lavado?" }
+      ],
+      "Produção e reposição": [
+        { id: "pr_1", text: "Alfaces lavados e prontos para reposição?" },
+        { id: "pr_2", text: "Cebola roxa cortada e abastecidas no padrão?" },
+        { id: "pr_3", text: "Tomate lavado, cortado e abastecidos de pé conforme o padrão de qualidade estabelecido?" },
+        { id: "pr_4", text: "Cebola caramelizada produzida e abastecida?" },
+        { id: "pr_5", text: "Os desperdícios da produção foram marcados?" },
+        { id: "pr_6", text: "As FIFOs de molhos estão abastecidas e datadas?" },
+        { id: "pr_7", text: "Papel acoplado abastecido?" },
+        { id: "pr_8", text: "2 cubas de cheddar fatiado abastecidas, datadas e apenas uma fora de refrigeração?" },
+        { id: "pr_9", text: "Bacon e farofa de bacon, produzidos e abastecidos?" },
+        { id: "pr_10", text: "Molho cheddar e requeijão abastecidos e aquecidos?" },
+        { id: "pr_11", text: "Carnes smash's, Hambúrguer de 180g, Costela e ovo, abastecidos?" },
+        { id: "pr_12", text: "Pães especiais abastecidos?" },
+        { id: "pr_13", text: "Pão brioche abastecido?" },
+        { id: "pr_14", text: "Freezer de apoio da fritadeira abastecido por completo?" },
+        { id: "pr_15", text: "Potes de molhos, Caixas do resenha, Caixas de fritas, Brownies 6x6, saco kraft e guardanapos, abastecidos?" },
+        { id: "pr_16", text: "Os saleiros estão abastecidos?" }
+      ],
+      "Fechamento": [
+        { id: "fc_1", text: "Carnes descongelando para o dia seguinte?" },
+        { id: "fc_2", text: "Toda a louça foi lavada?" },
+        { id: "fc_3", text: "Os insumos de refrigeração foram todos guardados?" },
+        { id: "fc_4", text: "Garrafa elétrica de café desligada na tomada?" },
+        { id: "fc_5", text: "Chapa foi desligada no botão e na válvula da parede?" },
+        { id: "fc_6", text: "Fritadeira foi desligada no botão e na válvula da parede? Fritadeira tampada?" },
+        { id: "fc_7", text: "Coifa desligada? Conservador de frituras limpo e desligado no botão?" },
+        { id: "fc_8", text: "Os potes do freezer de apoio da fritadeira foram tampados?" },
+        { id: "fc_9", text: "Banho Maria desligado, esvaziado e limpo?" },
+        { id: "fc_10", text: "Toaster, pistas quentes, impressora e conservador de proteínas desligados?" },
+        { id: "fc_11", text: "Os pães que foram abertos durante o expediente foram embalados novamente?" },
+        { id: "fc_12", text: "O chão da loja limpo?" },
+        { id: "fc_13", text: "Torneiras da cozinha foram fechadas?" },
+        { id: "fc_14", text: "Desperdícios foram marcados?" },
+        { id: "fc_15", text: "Os lixos foram tirados e os sacos repostos?" },
+        { id: "fc_16", text: "Geladeira de bebidas abastecidas?" },
+        { id: "fc_17", text: "Torneira dos motoboys fechada?" },
+        { id: "fc_18", text: "Gás desligado?" },
+        { id: "fc_19", text: "Máquinas de cartão carregando?" },
+        { id: "fc_20", text: "Todas as bags foram guardadas no estoque?" },
+        { id: "fc_21", text: "Caixa fechado? Mensagem e PDF enviados no GP do caixa?" },
+        { id: "fc_22", text: "Impressora desligada e gaveta do caixa trancada?" },
+        { id: "fc_23", text: "Boqueta e Porta do espaço dos motoboys foram fechadas?" },
+        { id: "fc_24", text: "Todos os refrigeradores e Freezers estão ligados?" },
+        { id: "fc_25", text: "Ventiladores desligados?" },
+        { id: "fc_26", text: "Estoque: Luz apagada e porta trancada?" },
+        { id: "fc_27", text: "As portas da loja foram fechadas nos trincos?" },
+        { id: "fc_28", text: "As luzes da loja foram apagadas?" },
+        { id: "fc_29", text: "Alarme acionado?" }
+      ]
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('checklist'); 
+      
+      // Carregar e salvar histórico local (Offline Garantido)
+      const [historicoList, setHistoricoList] = useState(() => {
+        const saved = localStorage.getItem('ocian_history');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      useEffect(() => {
+        localStorage.setItem('ocian_history', JSON.stringify(historicoList));
+      }, [historicoList]);
+
+      const [isStarted, setIsStarted] = useState(false);
+      const [isFinished, setIsFinished] = useState(false);
+      const [startTime, setStartTime] = useState(null);
+      const [searchTerm, setSearchTerm] = useState('');
+      const [answers, setAnswers] = useState({});
+      const [lastSavedItem, setLastSavedItem] = useState(null); 
+      const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+      const formatDateTime = (dateString) => {
+        if (!dateString) return '--:--';
+        const date = new Date(dateString);
+        return date.toLocaleString('pt-BR', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+      };
+
+      const calculateProgress = () => {
+        const totalQuestions = Object.values(checklistData).flat().length;
+        const answeredQuestions = Object.keys(answers).length;
+        const okQuestions = Object.values(answers).filter(val => val === true).length;
+        const notOkQuestions = Object.values(answers).filter(val => val === false).length;
+        
+        return {
+          total: totalQuestions,
+          answered: answeredQuestions,
+          ok: okQuestions,
+          notOk: notOkQuestions,
+          percentComplete: Math.round((answeredQuestions / totalQuestions) * 100) || 0
+        };
+      };
+
+      const progress = calculateProgress();
+
+      const handleStart = () => {
+        setIsStarted(true);
+        setStartTime(new Date().toISOString());
+        setIsFinished(false);
+        setLastSavedItem(null);
+        setAnswers({});
+        setSearchTerm('');
+      };
+
+      const handleFinishClick = () => {
+        setShowConfirmModal(true);
+      };
+
+      const confirmFinish = () => {
+        const currentEndTime = new Date().toISOString();
+        const startDate = new Date(startTime);
+        const endDate = new Date(currentEndTime);
+        
+        const novoHistorico = {
+          id: Date.now(),
+          data: startDate.toLocaleDateString('pt-BR'),
+          horaInicio: startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          horaFim: endDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          ok: progress.ok,
+          notOk: progress.notOk,
+          total: progress.total,
+          percentComplete: progress.percentComplete,
+          answers: { ...answers },
+          timestamp: Date.now()
+        };
+
+        // Salva no estado e no LocalStorage
+        setHistoricoList(prev => [novoHistorico, ...prev]);
+
+        // Mostra a tela de sucesso
+        setLastSavedItem(novoHistorico);
+        setIsFinished(true);
+        setShowConfirmModal(false);
+        window.scrollTo(0, 0);
+      };
+
+      const handleStartNew = () => {
+        setIsStarted(false);
+        setIsFinished(false);
+        setStartTime(null);
+        setAnswers({});
+        setSearchTerm('');
+        setLastSavedItem(null);
+        window.scrollTo(0, 0);
+      };
+
+      const handleReset = () => {
+        if (window.confirm("Isto apagará o progresso atual. Deseja cancelar e limpar a tela?")) {
+          handleStartNew();
+        }
+      };
+
+      const handleAnswer = (taskId, status) => {
+        if (isFinished) return;
+        setAnswers(prev => ({ ...prev, [taskId]: status }));
+      };
+
+      const handleSendToWhatsAppFromHistory = (item) => {
+        let report = `📋 *RELATÓRIO DE CHECK LIST - LOJA OCIAN*\n`;
+        report += `====================================\n\n`;
+        report += `📅 *Data:* ${item.data}\n`;
+        report += `🕒 *Início:* ${item.horaInicio} | 🏁 *Término:* ${item.horaFim}\n\n`;
+        report += `📊 *RESUMO:*\n`;
+        report += `✅ Feitos: ${item.ok}\n`;
+        report += `❌ Não Feitos: ${item.notOk}\n`;
+        report += `⚪ Em Branco: ${item.total - item.ok - item.notOk}\n\n`;
+
+        if (item.notOk > 0 && item.answers) {
+          report += `🚨 *ITENS NÃO FEITOS:*\n`;
+          Object.entries(checklistData).forEach(([categoryName, questions]) => {
+            questions.forEach((q) => {
+              if (item.answers[q.id] === false) {
+                report += `❌ [${categoryName}] ${q.text}\n`;
+              }
+            });
+          });
+          report += `\n`;
+        }
+
+        report += `====================================\n\n`;
+
+        if (item.answers) {
+          Object.entries(checklistData).forEach(([categoryName, questions]) => {
+            report += `*${categoryName.toUpperCase()}*\n\n`;
+            questions.forEach((q, index) => {
+              let statusEmoji = '⚪';
+              if (item.answers[q.id] === true) statusEmoji = '✅';
+              else if (item.answers[q.id] === false) statusEmoji = '❌';
+              report += `${statusEmoji} ${index + 1}. ${q.text}\n`;
+            });
+            report += `\n`;
+          });
+        }
+
+        const encodedText = encodeURIComponent(report);
+        window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+      };
+
+      const handleGeneratePDF = (item) => {
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (!printWindow) {
+          alert("Por favor, permita a abertura de pop-ups no seu navegador para gerar o PDF.");
+          return;
+        }
+
+        let html = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Checklist_Ocian_${item.data.replace(/\//g, '-')}</title>
+              <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 20px; }
+                .header { text-align: center; border-bottom: 3px solid #ffcd02; padding-bottom: 15px; margin-bottom: 20px; }
+                .header h1 { margin: 0; font-size: 24px; color: #000; }
+                .summary { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 25px; }
+                .summary p { margin: 8px 0; font-size: 14px; }
+                .summary strong { color: #000; }
+                .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 13px; margin-right: 10px; }
+                .badge-ok { background: #d4edda; color: #155724; }
+                .badge-nok { background: #f8d7da; color: #721c24; }
+                .badge-branco { background: #e2e3e5; color: #383d41; }
+                .category { margin-bottom: 20px; page-break-inside: avoid; }
+                .category h2 { font-size: 16px; color: #117a9b; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+                .question { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed #f1f1f1; font-size: 13px; page-break-inside: avoid; }
+                .q-text { flex: 1; padding-right: 15px; }
+                .q-status { min-width: 100px; text-align: right; font-weight: bold; }
+                .status-ok { color: #28a745; }
+                .status-nok { color: #dc3545; }
+                .status-branco { color: #6c757d; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>Relatório de Check List - Loja Ocian</h1>
+              </div>
+              
+              <div class="summary">
+                <p><strong>📅 Data:</strong> ${item.data}</p>
+                <p><strong>🕒 Início:</strong> ${item.horaInicio} &nbsp;|&nbsp; <strong>🏁 Término:</strong> ${item.horaFim}</p>
+                <p><strong>📊 Conclusão:</strong> ${item.percentComplete}%</p>
+                <div style="margin-top: 10px;">
+                  <span class="badge badge-ok">✅ ${item.ok} Feitos</span>
+                  <span class="badge badge-nok">❌ ${item.notOk} Não Feitos</span>
+                  <span class="badge badge-branco">⚪ ${item.total - item.ok - item.notOk} Em Branco</span>
+                </div>
+              </div>
+        `;
+
+        if (item.answers) {
+          Object.entries(checklistData).forEach(([categoryName, questions]) => {
+            html += `<div class="category"><h2>${categoryName}</h2>`;
+            questions.forEach((q, index) => {
+              const ans = item.answers[q.id];
+              let statusText = '<span class="q-status status-branco">⚪ Em Branco</span>';
+              if (ans === true) statusText = '<span class="q-status status-ok">✅ Feito</span>';
+              else if (ans === false) statusText = '<span class="q-status status-nok">❌ Não Feito</span>';
+              
+              html += `
+                <div class="question">
+                  <div class="q-text"><strong>${index + 1}.</strong> ${q.text}</div>
+                  ${statusText}
+                </div>
+              `;
+            });
+            html += `</div>`;
+          });
+        }
+
+        html += `
+              <script>
+                setTimeout(function() { window.print(); }, 800); 
+              <\/script>
+            </body>
+          </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+      };
+
+      const filteredData = Object.entries(checklistData).reduce((acc, [category, questions]) => {
+        const filteredQuestions = questions.filter(q => 
+          q.text.toLowerCase().includes(searchTerm.toLowerCase()) || category.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        if (filteredQuestions.length > 0) acc[category] = filteredQuestions;
+        return acc;
+      }, {});
+
+      return (
+        <div className="min-h-screen bg-[#ffcd02] text-gray-800 font-sans pb-24 relative">
+          
+          {/* Modal de Confirmação customizado (Substitui o window.confirm que era bloqueado) */}
+          {showConfirmModal && (
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-fade-in-down border-4 border-[#ffcd02]">
+                <h3 className="text-2xl font-black text-black mb-2 uppercase text-center">Atenção</h3>
+                <p className="text-gray-700 text-center mb-6 font-medium">Tem certeza que deseja finalizar o Check List? Ele será salvo no histórico.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button onClick={() => setShowConfirmModal(false)} className="flex-1 py-3 bg-gray-200 text-gray-800 rounded-xl font-bold transition-colors hover:bg-gray-300">
+                    Cancelar
+                  </button>
+                  <button onClick={confirmFinish} className="flex-1 py-3 bg-[#28a745] text-white rounded-xl font-bold transition-colors hover:bg-green-700 shadow-sm">
+                    Sim, Finalizar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <header className="bg-black text-white sticky top-0 z-20 shadow-md">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-between items-center px-4 py-3 border-b border-gray-800">
+                <h1 className="text-xl font-bold tracking-wide">
+                  {activeTab === 'checklist' ? 'Check List Ocian' : 'Histórico Ocian'}
+                </h1>
+                <div className="text-sm text-gray-400 font-mono">
+                  {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute:'2-digit' })}
+                </div>
+              </div>
+              {activeTab === 'checklist' && isStarted && !isFinished && (
+                <div className="bg-[#1a1a1a] p-2 px-4 flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"><Icons.Search /></div>
+                    <input type="text" placeholder="Pesquisar tarefas..." className="w-full bg-white text-black rounded-md py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-[#ffcd02]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  </div>
+                  {searchTerm && <button onClick={() => setSearchTerm('')} className="text-white text-sm font-medium">Cancelar</button>}
+                </div>
+              )}
+            </div>
+          </header>
+
+          <main className="max-w-4xl mx-auto p-4 mt-2 space-y-4">
+            {activeTab === 'checklist' && (
+              <>
+                {!isStarted && !isFinished && (
+                  <div className="flex flex-col items-center justify-center py-10 mt-2 mb-6 animate-fade-in-down">
+                    <div className="w-48 h-48 bg-[#ffcd02] border-[5px] border-black rounded-3xl flex items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8 transform transition hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+                      <BurgerLogo className="w-full h-full text-black" />
+                    </div>
+                    <h2 className="text-3xl font-black text-black tracking-tight text-center uppercase">Loja Ocian</h2>
+                    <p className="text-black font-bold text-center mt-2 opacity-80 max-w-xs">Prepare o seu turno clicando no botão "Iniciar Turno" abaixo.</p>
+                  </div>
+                )}
+
+                {!isFinished && (
+                  <div className="bg-black text-white rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] p-4 border border-gray-800">
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
+                      <div className="flex w-full md:w-auto items-center gap-3">
+                        <div className="bg-[#ffcd02] flex items-center justify-center rounded-lg p-2 border-2 border-black shrink-0" style={{ width: '64px', height: '64px' }}>
+                          <BurgerLogo className="w-full h-full text-black" />
+                        </div>
+                        <div className="flex flex-col flex-1 text-left bg-gray-900 px-4 py-2 rounded-lg border border-gray-800 h-full justify-center min-h-[64px]">
+                          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Status do Turno</span>
+                          <span className={`font-bold text-xl ${!isStarted ? 'text-white' : 'text-green-400'}`}>
+                            {!isStarted ? 'Não Iniciado' : 'Em Andamento'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex w-full md:w-auto gap-3">
+                        {!isStarted ? (
+                          <button onClick={handleStart} className="flex-1 md:flex-none bg-[#28a745] hover:bg-green-600 text-white px-6 py-3 rounded-lg font-bold flex justify-center items-center gap-2 shadow-sm transition-colors">
+                            <Icons.Play /> Iniciar Turno
+                          </button>
+                        ) : (
+                          <button onClick={handleReset} className="flex-1 md:flex-none bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-bold flex justify-center items-center gap-2 shadow-sm transition-colors">
+                            <Icons.RotateCcw /> Cancelar / Limpar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isStarted && (
+                      <div className="bg-gray-900 p-3 rounded-lg flex justify-between text-sm mb-2 border border-gray-800">
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <Icons.Clock /> <span className="font-mono">{formatDateTime(startTime)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Icons.Check /> <span className="font-bold text-blue-400">{progress.percentComplete}% Concluído</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isFinished && lastSavedItem && (
+                  <div className="bg-white rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] p-8 flex flex-col items-center justify-center text-center mt-6 border-2 border-black animate-fade-in-down">
+                    <div className="text-[#28a745] mb-4 animate-bounce"><Icons.PartyPopper /></div>
+                    <h2 className="text-3xl font-black text-black mb-2 uppercase tracking-wide">Turno Finalizado!</h2>
+                    <p className="text-gray-600 mb-8 font-medium">O check list foi salvo com sucesso no histórico.</p>
+
+                    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md mb-8">
+                      <button onClick={() => handleGeneratePDF(lastSavedItem)} className="flex-1 flex items-center justify-center gap-2 py-4 px-4 rounded-xl text-lg font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] border-2 border-black hover:-translate-y-1">
+                        <Icons.Printer /> Imprimir / PDF
+                      </button>
+                      <button onClick={() => handleSendToWhatsAppFromHistory(lastSavedItem)} className="flex-1 flex items-center justify-center gap-2 py-4 px-4 rounded-xl text-lg font-bold bg-[#25D366] hover:bg-[#1ebd5c] text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] border-2 border-black transition-all hover:-translate-y-1">
+                        <Icons.MessageCircle /> WhatsApp
+                      </button>
+                    </div>
+
+                    <button onClick={handleStartNew} className="bg-black text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:bg-gray-800 transition-colors w-full max-w-md">
+                      Concluir / Novo Turno
+                    </button>
+                  </div>
+                )}
+
+                {isStarted && !isFinished && (
+                  <div className="space-y-4 mt-6">
+                    {Object.entries(filteredData).map(([categoryName, questions]) => (
+                      <div key={categoryName} className="space-y-3">
+                        <h2 className="bg-black text-white font-bold text-xl mt-6 mb-3 p-3 rounded-lg flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                          <Icons.ClipboardList /> {categoryName}
+                        </h2>
+                        {questions.map((q, index) => {
+                          const currentAnswer = answers[q.id];
+                          return (
+                            <div key={q.id} className="bg-white rounded-xl shadow-md p-4 flex gap-4 border border-gray-100 relative overflow-hidden transition-all hover:shadow-lg">
+                              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${currentAnswer === true ? 'bg-[#28a745]' : currentAnswer === false ? 'bg-[#dc3545]' : 'bg-gray-200'}`} />
+                              <div className="pt-1 pl-1 text-[#107c9c]"><Icons.Calendar /></div>
+                              <div className="flex-1">
+                                <p className="text-[#107c9c] font-bold text-[16px] leading-tight mb-1.5">{categoryName} - {index + 1}</p>
+                                <p className="text-black font-bold text-[15px] mb-4 leading-snug">{q.text}</p>
+                                <div className="flex flex-wrap gap-2">
+                                  <button onClick={() => handleAnswer(q.id, true)} className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm font-bold transition-all ${currentAnswer === true ? 'bg-[#1e7e34] text-white shadow-inner translate-y-[2px] ring-2 ring-[#1e7e34] ring-offset-1' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200 hover:-translate-y-[1px] shadow-sm'}`}>✅ Feito</button>
+                                  <button onClick={() => handleAnswer(q.id, false)} className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm font-bold transition-all ${currentAnswer === false ? 'bg-[#bd2130] text-white shadow-inner translate-y-[2px] ring-2 ring-[#bd2130] ring-offset-1' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200 hover:-translate-y-[1px] shadow-sm'}`}>❌ Não feito</button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+
+                    {isStarted && progress.answered === progress.total && progress.total > 0 && (
+                      <div className="bg-[#28a745] text-white rounded-xl shadow-lg p-6 mt-8 mb-4 flex flex-col items-center justify-center text-center border-4 border-white transform transition-all duration-500 hover:scale-[1.02]">
+                        <div className="text-[#ffcd02] mb-3 animate-bounce"><Icons.PartyPopper /></div>
+                        <h2 className="text-2xl font-extrabold tracking-wide drop-shadow-md">Parabéns check list concluído com sucesso!!</h2>
+                        <p className="mt-2 font-medium opacity-90">Clique no botão "Finalizar Check List" logo abaixo para salvar o turno na base de dados.</p>
+                      </div>
+                    )}
+
+                    <div className="mt-6 mb-8 pt-4">
+                      <button onClick={handleFinishClick} className="w-full text-white px-6 py-4 rounded-xl font-bold flex justify-center items-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] transition-colors text-lg bg-[#dc3545] hover:bg-red-700">
+                        <Icons.Square /> Finalizar Check List
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'historico' && (
+              <div className="space-y-4">
+                <div className="bg-black text-white p-4 rounded-xl flex items-center gap-3 mb-6 shadow-md">
+                  <div className="text-[#ffcd02]"><Icons.FolderOpen /></div>
+                  <div>
+                    <h2 className="font-bold text-lg">Base de Dados - Histórico</h2>
+                    <p className="text-sm text-gray-400">Consulte os formulários preenchidos e exporte relatórios.</p>
+                  </div>
+                </div>
+
+                {historicoList.length === 0 ? (
+                  <div className="bg-white p-8 rounded-xl text-center shadow-sm">
+                    <p className="text-gray-500 font-medium">Nenhum Check List foi salvo na base de dados ainda.</p>
+                  </div>
+                ) : (
+                  historicoList.map((item) => (
+                    <div key={item.id} className="bg-white rounded-xl shadow-md p-5 border border-gray-200 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-black"></div>
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-2"><div className="text-gray-500"><Icons.Calendar /></div><span className="font-bold text-xl text-black">{item.data}</span></div>
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${item.percentComplete === 100 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{item.percentComplete}% Concluído</span>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="flex justify-between mb-1"><span className="font-medium">Início:</span> <span className="font-mono font-bold text-gray-800">{item.horaInicio}</span></div>
+                        <div className="flex justify-between"><span className="font-medium">Término:</span> <span className="font-mono font-bold text-gray-800">{item.horaFim}</span></div>
+                      </div>
+                      <div className="flex justify-between text-[13px] py-3 border-y border-gray-100 mb-4">
+                        <div className="flex flex-col items-center"><span className="text-xl mb-1">✅</span><span className="text-green-700 font-bold">{item.ok} Feitos</span></div>
+                        <div className="flex flex-col items-center"><span className="text-xl mb-1">❌</span><span className="text-red-700 font-bold">{item.notOk} Não Feitos</span></div>
+                        <div className="flex flex-col items-center"><span className="text-xl mb-1">⚪</span><span className="text-gray-500 font-bold">{item.total - item.ok - item.notOk} Em Branco</span></div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button onClick={() => handleGeneratePDF(item)} className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                          <Icons.Printer /> Gerar PDF
+                        </button>
+                        <button onClick={() => handleSendToWhatsAppFromHistory(item)} className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold bg-[#25D366] hover:bg-[#1ebd5c] text-white shadow-sm transition-all">
+                          <Icons.MessageCircle /> WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </main>
+
+          <nav className="fixed bottom-0 w-full bg-black text-white flex justify-around items-center pt-2 pb-safe border-t border-gray-800 shadow-[0_-4px_10px_-1px_rgba(0,0,0,0.5)] z-30 h-[72px]">
+            <button onClick={() => setActiveTab('checklist')} className={`flex flex-col items-center justify-center w-1/2 h-full transition-all duration-200 ${activeTab === 'checklist' ? 'bg-gray-900 opacity-100 border-t-2 border-[#ffcd02]' : 'opacity-60 hover:opacity-100'}`}>
+              <div className="mb-1"><Icons.ClipboardCheck /></div>
+              <span className="text-[11px] font-bold tracking-wide uppercase">Check List Diário</span>
+            </button>
+            <button onClick={() => setActiveTab('historico')} className={`flex flex-col items-center justify-center w-1/2 h-full transition-all duration-200 ${activeTab === 'historico' ? 'bg-gray-900 opacity-100 border-t-2 border-[#ffcd02]' : 'opacity-60 hover:opacity-100'}`}>
+              <div className="mb-1"><Icons.FolderOpen /></div>
+              <span className="text-[11px] font-bold tracking-wide uppercase">Histórico</span>
+            </button>
+          </nav>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
